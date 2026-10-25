@@ -1,0 +1,30 @@
+[
+  {
+    "id": "567ef237-86b0-4bae-89b5-b63844ced8af",
+    "name": "Andy's device",
+    "portPath": null,
+    "source": "demo",
+    "csvFileName": "Andy's device.csv"
+  },
+  {
+    "id": "57f35673-42ce-43c2-b775-e134916b21ce",
+    "name": "Raina's device",
+    "portPath": null,
+    "source": "demo",
+    "csvFileName": "Raina's device.csv"
+  },
+  {
+    "id": "88b59cd4-633b-49c8-a4b5-c440bd198dea",
+    "name": "raina",
+    "portPath": "COM4",
+    "source": "serial",
+    "csvFileName": "raina.csv"
+  },
+  {
+    "id": "61b3ccd1-4f1f-433b-8f63-fa643f50de57",
+    "name": "Ji",
+    "portPath": "COM3",
+    "source": "serial",
+    "csvFileName": "Ji.csv"
+  }
+]

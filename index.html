@@ -1,0 +1,1380 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Optoelectronic Traffic Counter</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17201d;
+      --muted: #66706c;
+      --paper: #f4f1e9;
+      --line: #c9cec8;
+      --signal: #e14b32;
+      --active: #16775d;
+      --warning: #d5a000;
+      --inactive: #c9cec8;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(rgba(23, 32, 29, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(23, 32, 29, 0.045) 1px, transparent 1px);
+      background-size: 24px 24px;
+      font-family: Rockwell, "Roboto Slab", serif;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 96px 0 72px;
+    }
+
+    .project-heading {
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .project-heading h1 {
+      margin: 0;
+      font: 700 clamp(28px, 4.5vw, 52px)/1.15 "Courier New", monospace;
+    }
+
+    .project-heading p {
+      margin: 14px 0 0;
+      color: #000;
+      font: 700 24px/1.4 "Trebuchet MS", sans-serif;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 24px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .home-header { align-items: center; }
+
+    .device-header {
+      grid-template-columns: minmax(0, 1fr) 260px minmax(0, 1fr);
+      align-items: center;
+      padding-bottom: 12px;
+    }
+
+    .device-header .sensor-diagram {
+      margin: 0;
+    }
+
+    .device-header #timer {
+      font-size: clamp(42px, 6.5vw, 82px);
+    }
+
+    .sensor-diagram {
+      width: min(100%, 260px);
+      margin: 16px auto 0;
+    }
+
+    .sensor-diagram img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid #000;
+      border-radius: 12px;
+      background: transparent;
+    }
+
+    .home-title,
+    .device-title {
+      margin: 0;
+      font: 700 clamp(34px, 7vw, 64px)/1 "Courier New", monospace;
+    }
+
+    .device-title { font-size: clamp(28px, 5vw, 48px); }
+
+    .timer-label,
+    .section-title {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font: 700 12px/1.2 "Trebuchet MS", sans-serif;
+      text-transform: uppercase;
+    }
+
+    .section-title { margin-bottom: 18px; }
+
+    #timer {
+      margin: 0;
+      font: 700 clamp(42px, 10vw, 82px)/0.95 "Courier New", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .connection {
+      display: grid;
+      justify-items: end;
+      gap: 8px;
+    }
+
+    .connection-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button,
+    select,
+    input {
+      min-height: 44px;
+      padding: 8px 12px;
+      border: 2px solid var(--ink);
+      border-radius: 4px;
+      font: 700 14px/1 "Trebuchet MS", sans-serif;
+    }
+
+    select,
+    input {
+      color: var(--ink);
+      background: var(--paper);
+    }
+
+    button {
+      min-width: 112px;
+      color: var(--paper);
+      background: var(--ink);
+      cursor: pointer;
+    }
+
+    button:hover {
+      color: var(--ink);
+      background: transparent;
+    }
+
+    button[data-connected="true"] {
+      border-color: var(--active);
+      background: var(--active);
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.55;
+    }
+
+    #status,
+    .form-status {
+      margin: 0;
+      color: var(--muted);
+      font: 700 12px/1.2 "Trebuchet MS", sans-serif;
+    }
+
+    .download,
+    .back-link {
+      color: var(--active);
+      font: 700 13px/1.2 "Trebuchet MS", sans-serif;
+    }
+
+    .add-device {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto auto;
+      gap: 10px;
+      padding: 30px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .form-status { grid-column: 1 / -1; }
+
+    .device-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      padding-top: 30px;
+    }
+
+    .device-card {
+      display: grid;
+      gap: 8px;
+      min-height: 130px;
+      padding: 22px;
+      border: 2px solid var(--ink);
+      border-radius: 4px;
+      color: var(--ink);
+      background: rgba(244, 241, 233, 0.8);
+      text-decoration: none;
+    }
+
+    .device-card:hover {
+      color: var(--paper);
+      background: var(--ink);
+    }
+
+    .device-card-name {
+      font: 700 22px/1.1 "Courier New", monospace;
+    }
+
+    .device-card-detail {
+      color: var(--muted);
+      font: 700 12px/1.3 "Trebuchet MS", sans-serif;
+    }
+
+    .device-card:hover .device-card-detail { color: var(--paper); }
+
+    .workspace {
+      display: grid;
+      gap: 24px;
+      padding-top: 30px;
+    }
+
+    .panel {
+      padding: 24px;
+      border: 1px solid rgba(23, 32, 29, 0.16);
+      border-radius: 14px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(244, 241, 233, 0.88));
+      box-shadow: 0 18px 50px rgba(23, 32, 29, 0.08);
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .panel-heading h2 {
+      margin: 0;
+      font: 700 24px/1.1 "Courier New", monospace;
+    }
+
+    .panel-heading p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font: 14px/1.4 "Trebuchet MS", sans-serif;
+    }
+
+    .range-controls,
+    .device-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .analytics-select {
+      min-width: 190px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .device-list-field {
+      display: grid;
+      gap: 7px;
+      margin: 18px 0;
+    }
+
+    .device-list-field label {
+      color: var(--muted);
+      font: 700 11px/1 "Trebuchet MS", sans-serif;
+      text-transform: uppercase;
+    }
+
+    #device-select {
+      width: min(100%, 520px);
+      min-height: 108px;
+      padding: 6px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    #device-select option {
+      padding: 8px 10px;
+      border-radius: 4px;
+    }
+
+    .list-help {
+      color: var(--muted);
+      font: 12px/1.35 "Trebuchet MS", sans-serif;
+    }
+
+    .range-button {
+      min-width: 0;
+      min-height: 34px;
+      padding: 7px 11px;
+      border-width: 1px;
+      border-radius: 999px;
+      color: var(--ink);
+      background: transparent;
+      font-size: 12px;
+    }
+
+    .range-button[aria-pressed="true"] {
+      border-color: var(--active);
+      color: var(--paper);
+      background: var(--active);
+    }
+
+    .device-filters {
+      margin: 18px 0;
+    }
+
+    .device-filter {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font: 700 12px/1 "Trebuchet MS", sans-serif;
+      cursor: pointer;
+    }
+
+    .device-filter input {
+      min-height: 0;
+      margin: 0;
+      accent-color: var(--active);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .summary-card {
+      padding: 16px;
+      border-left: 5px solid var(--device-color);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.65);
+    }
+
+    .summary-name {
+      display: block;
+      color: var(--muted);
+      font: 700 12px/1.2 "Trebuchet MS", sans-serif;
+    }
+
+    .summary-count {
+      display: block;
+      margin-top: 7px;
+      font: 700 28px/1 "Courier New", monospace;
+    }
+
+    .chart-frame {
+      width: 100%;
+      min-height: 320px;
+      overflow-x: auto;
+    }
+
+    #comparison-chart {
+      width: 100%;
+      min-width: 720px;
+      height: auto;
+    }
+
+    .upload-form {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font: 700 11px/1 "Trebuchet MS", sans-serif;
+      text-transform: uppercase;
+    }
+
+    .upload-help {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font: 13px/1.45 "Trebuchet MS", sans-serif;
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.72fr) minmax(440px, 1.28fr);
+      gap: 36px;
+      padding-top: 30px;
+    }
+
+    #times {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    #times li {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      align-items: center;
+      min-height: 76px;
+      border-bottom: 1px solid var(--line);
+      animation: reveal 240ms ease-out both;
+    }
+
+    #times li::before {
+      content: attr(data-pass-number);
+      color: var(--signal);
+      font: 700 14px/1 "Courier New", monospace;
+    }
+
+    #times time {
+      font: 700 30px/1 "Courier New", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #empty {
+      margin: 22px 0 0;
+      color: var(--muted);
+      font: 16px/1.5 "Trebuchet MS", sans-serif;
+    }
+
+    .histograms {
+      display: grid;
+      gap: 32px;
+    }
+
+    .histogram-frame {
+      position: relative;
+      height: 240px;
+      overflow-x: auto;
+      border-bottom: 2px solid var(--ink);
+      background-image: linear-gradient(
+        to top,
+        rgba(23, 32, 29, 0.1) 1px,
+        transparent 1px
+      );
+      background-size: 100% 25%;
+    }
+
+    .histogram {
+      display: flex;
+      align-items: end;
+      gap: 10px;
+      min-width: 100%;
+      height: 100%;
+      padding: 30px 12px 0;
+    }
+
+    .bar-column {
+      display: grid;
+      grid-template-rows: 1fr 26px;
+      flex: 1 0 46px;
+      min-width: 46px;
+      height: 100%;
+      text-align: center;
+    }
+
+    .bar-track {
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    .bar {
+      position: relative;
+      width: min(34px, 76%);
+      height: var(--bar-height);
+      min-height: 2px;
+      background: var(--inactive);
+      transition: height 220ms ease-out;
+    }
+
+    .bar.green { background: var(--active); }
+    .bar.yellow { background: var(--warning); }
+    .bar.red { background: var(--signal); }
+
+    .bar-count {
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 7px);
+      transform: translateX(-50%);
+      font: 700 13px/1 "Courier New", monospace;
+    }
+
+    .bar-label {
+      align-self: end;
+      color: var(--muted);
+      font: 700 11px/1 "Courier New", monospace;
+      white-space: nowrap;
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 1000px) {
+      .device-header { grid-template-columns: 1fr; }
+      .device-header .sensor-diagram {
+        grid-row: 1;
+        justify-self: center;
+      }
+    }
+
+    @media (max-width: 760px) {
+      main {
+        width: min(100% - 24px, 1120px);
+        padding-top: 56px;
+      }
+
+      header,
+      .results {
+        grid-template-columns: 1fr;
+      }
+
+      .connection,
+      .connection-controls {
+        width: 100%;
+      }
+
+      .connection-controls,
+      .add-device,
+      .upload-form {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .form-status { grid-column: 1; }
+      .panel { padding: 18px; }
+      .panel-heading { display: grid; }
+      button { width: 100%; }
+      .histogram-frame { height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="project-heading">
+      <h1>Optoelectronic Traffic Counter</h1>
+      <p>Raina Ji</p>
+      <figure class="sensor-diagram">
+        <img
+          src="/assets/sensor-diagram.png"
+          alt="Sensor diagram showing a laser diode, lenses, reflected light, a detector, and a pedestrian."
+          width="531"
+          height="380"
+        >
+      </figure>
+    </div>
+    <section id="home-view">
+      <header class="home-header">
+        <div>
+          <p class="timer-label">Local network dashboard</p>
+          <h2 class="home-title">Traffic counters</h2>
+        </div>
+      </header>
+
+      <form class="add-device" id="add-device">
+        <input
+          id="device-name"
+          name="name"
+          maxlength="80"
+          placeholder="Device name, e.g. Front Gate"
+          aria-label="Device name"
+          required
+        >
+        <select id="ports" name="portPath" aria-label="Arduino serial port">
+          <option value="">Loading serial ports...</option>
+        </select>
+        <button id="refresh-ports" type="button">Refresh ports</button>
+        <button id="add-device-button" type="submit">Add device</button>
+        <p class="form-status" id="home-status" role="status">
+          Add an Arduino to begin.
+        </p>
+      </form>
+
+      <div class="workspace">
+        <section class="panel" aria-labelledby="analytics-title">
+          <div class="panel-heading">
+            <div>
+              <h2 id="analytics-title">Device comparison</h2>
+              <p>Compare traffic volume across devices and time ranges.</p>
+            </div>
+            <div class="field">
+              <label for="range-select">Time range</label>
+              <select class="analytics-select" id="range-select">
+                <option value="1h">Past 1 hour</option>
+                <option value="4h">Past 4 hours</option>
+                <option value="24h" selected>Past 24 hours</option>
+                <option value="2d">Past 2 days</option>
+                <option value="3d">Past 3 days</option>
+                <option value="7d">Past 7 days</option>
+                <option value="10d">Past 10 days</option>
+                <option value="15d">Past 15 days</option>
+                <option value="1mo">Past 1 month</option>
+              </select>
+            </div>
+          </div>
+          <div class="device-list-field">
+            <label for="device-select">Devices to compare</label>
+            <select id="device-select" multiple aria-label="Devices to compare"></select>
+            <span class="list-help">
+              Hold Ctrl (Windows) or Command (Mac) to select multiple devices.
+            </span>
+          </div>
+          <div class="summary-grid" id="summary-grid"></div>
+          <div class="chart-frame">
+            <svg
+              id="comparison-chart"
+              viewBox="0 0 1000 360"
+              role="img"
+              aria-label="Device traffic comparison chart"
+            ></svg>
+          </div>
+          <p class="form-status" id="analytics-status" role="status"></p>
+        </section>
+
+        <section class="panel" aria-labelledby="upload-title">
+          <div class="panel-heading">
+            <div>
+              <h2 id="upload-title">Upload historical data</h2>
+              <p>Merge an old CSV into a device or create an imported device.</p>
+            </div>
+          </div>
+          <form class="upload-form" id="upload-form">
+            <div class="field">
+              <label for="csv-file">CSV file</label>
+              <input id="csv-file" type="file" accept=".csv,text/csv" required>
+            </div>
+            <div class="field">
+              <label for="upload-destination">Destination</label>
+              <select id="upload-destination"></select>
+            </div>
+            <div class="field" id="new-device-field">
+              <label for="new-device-name">New device name</label>
+              <input id="new-device-name" maxlength="80" placeholder="Imported device">
+            </div>
+            <button id="upload-button" type="submit">Upload data</button>
+          </form>
+          <p class="upload-help">
+            Supported CSVs need either a timestamp column or separate date and
+            time columns. Count, elapsed time, and peak columns are optional.
+          </p>
+          <p class="form-status" id="upload-status" role="status"></p>
+        </section>
+
+        <section class="panel" aria-labelledby="devices-title">
+          <div class="panel-heading">
+            <div>
+              <h2 id="devices-title">Devices</h2>
+              <p>Select a named device to open its live dashboard.</p>
+            </div>
+          </div>
+          <div class="device-grid" id="device-grid"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="device-view" hidden>
+      <header class="device-header">
+        <div>
+          <a class="back-link" href="/">All devices</a>
+          <h2 class="device-title" id="device-title">Device</h2>
+          <p class="timer-label">Current time (GMT-7)</p>
+          <p id="timer" aria-live="off">00:00:00</p>
+        </div>
+        <div class="connection">
+          <div class="connection-controls">
+            <span id="device-port"></span>
+            <button id="connect" type="button">Connect Arduino</button>
+          </div>
+          <p id="status" role="status">Not connected</p>
+          <a class="download" id="download-csv" href="#" download>
+            Download this device's CSV
+          </a>
+        </div>
+      </header>
+
+      <div class="results">
+        <section aria-labelledby="times-title">
+          <h2 class="section-title" id="times-title">Latest 10 pass times</h2>
+          <ol id="times" aria-label="Latest 10 detected pass times"></ol>
+          <p id="empty">Waiting for a pass</p>
+        </section>
+
+        <div class="histograms">
+          <section aria-labelledby="seconds-title">
+            <h2 class="section-title" id="seconds-title">
+              Last 10 seconds - 1-second groups
+            </h2>
+            <div class="histogram-frame">
+              <div class="histogram" id="seconds-histogram" aria-label="Activity during the last 10 seconds"></div>
+            </div>
+          </section>
+
+          <section aria-labelledby="ten-seconds-title">
+            <h2 class="section-title" id="ten-seconds-title">
+              Last 60 seconds - 10-second groups
+            </h2>
+            <div class="histogram-frame">
+              <div class="histogram" id="ten-seconds-histogram" aria-label="Activity during the last 60 seconds"></div>
+            </div>
+          </section>
+
+          <section aria-labelledby="minutes-title">
+            <h2 class="section-title" id="minutes-title">
+              Last 10 minutes - 1-minute groups
+            </h2>
+            <div class="histogram-frame">
+              <div class="histogram" id="minutes-histogram" aria-label="Activity during the last 10 minutes"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const selectedDeviceId =
+      new URLSearchParams(window.location.search).get("device");
+    const homeView = document.querySelector("#home-view");
+    const deviceView = document.querySelector("#device-view");
+    const addDeviceForm = document.querySelector("#add-device");
+    const deviceNameInput = document.querySelector("#device-name");
+    const addDeviceButton = document.querySelector("#add-device-button");
+    const refreshPortsButton = document.querySelector("#refresh-ports");
+    const portSelect = document.querySelector("#ports");
+    const homeStatus = document.querySelector("#home-status");
+    const deviceGrid = document.querySelector("#device-grid");
+    const deviceSelect = document.querySelector("#device-select");
+    const summaryGrid = document.querySelector("#summary-grid");
+    const comparisonChart = document.querySelector("#comparison-chart");
+    const analyticsStatus = document.querySelector("#analytics-status");
+    const rangeSelect = document.querySelector("#range-select");
+    const uploadForm = document.querySelector("#upload-form");
+    const csvFileInput = document.querySelector("#csv-file");
+    const uploadDestination =
+      document.querySelector("#upload-destination");
+    const newDeviceField = document.querySelector("#new-device-field");
+    const newDeviceName = document.querySelector("#new-device-name");
+    const uploadButton = document.querySelector("#upload-button");
+    const uploadStatus = document.querySelector("#upload-status");
+    const deviceTitle = document.querySelector("#device-title");
+    const devicePort = document.querySelector("#device-port");
+    const downloadCsv = document.querySelector("#download-csv");
+    const connectButton = document.querySelector("#connect");
+    const status = document.querySelector("#status");
+    const timer = document.querySelector("#timer");
+    const times = document.querySelector("#times");
+    const empty = document.querySelector("#empty");
+    const secondsHistogram = document.querySelector("#seconds-histogram");
+    const tenSecondsHistogram =
+      document.querySelector("#ten-seconds-histogram");
+    const minutesHistogram = document.querySelector("#minutes-histogram");
+
+    let connected = false;
+    let lastRenderedSecond = -1;
+    let currentRange = "24h";
+    let knownDevices = [];
+    let filtersInitialized = false;
+    let analyticsRefreshTimer;
+    const passTimes = [];
+    const crossings = new Set();
+    const selectedAnalyticsDevices = new Set();
+    const chartColors = [
+      "#16775d",
+      "#e14b32",
+      "#3b6fc4",
+      "#d5a000",
+      "#8b55a2",
+      "#197f8f"
+    ];
+    const chartLineStyles = [
+      { dashArray: "", markerFill: "color", markerRadius: 4 },
+      { dashArray: "12 8", markerFill: "paper", markerRadius: 5 },
+      { dashArray: "3 7", markerFill: "color", markerRadius: 3.5 },
+      { dashArray: "16 6 3 6", markerFill: "paper", markerRadius: 5 },
+      { dashArray: "8 5", markerFill: "color", markerRadius: 4 },
+      { dashArray: "2 5", markerFill: "paper", markerRadius: 5 }
+    ];
+
+    function formatClock(date) {
+      const shifted = new Date(date.getTime() - 7 * 60 * 60 * 1000);
+      return [
+        String(shifted.getUTCHours()).padStart(2, "0"),
+        String(shifted.getUTCMinutes()).padStart(2, "0"),
+        String(shifted.getUTCSeconds()).padStart(2, "0")
+      ].join(":");
+    }
+
+    function drawTimer() {
+      if (!selectedDeviceId) return;
+
+      const now = Date.now();
+      timer.textContent = formatClock(new Date(now));
+      const currentSecond = Math.floor(now / 1000);
+      if (currentSecond !== lastRenderedSecond) {
+        lastRenderedSecond = currentSecond;
+        renderHistograms(now);
+      }
+      requestAnimationFrame(drawTimer);
+    }
+
+    function addPass(crossing) {
+      if (crossing.deviceId !== selectedDeviceId) return;
+      if (crossings.has(crossing.crossingNumber)) return;
+
+      crossings.add(crossing.crossingNumber);
+      passTimes.push(new Date(crossing.timestamp).getTime());
+
+      const item = document.createElement("li");
+      item.dataset.passNumber =
+        String(crossing.crossingNumber).padStart(2, "0");
+      const passTime = document.createElement("time");
+      passTime.textContent = crossing.time;
+      passTime.dateTime = crossing.timestamp;
+      passTime.title =
+        `${crossing.date} ${crossing.time} GMT-7; peak ${crossing.peak}`;
+      item.append(passTime);
+      times.append(item);
+      while (times.children.length > 10) {
+        times.firstElementChild.remove();
+      }
+      empty.hidden = true;
+      renderHistograms(Date.now());
+    }
+
+    function renderHistograms(now) {
+      renderHistogram(secondsHistogram, now, 1000, 10, "s", 1, 3);
+      renderHistogram(tenSecondsHistogram, now, 10000, 6, "s", 3, 8);
+      renderHistogram(minutesHistogram, now, 60000, 10, "m", 15, 45);
+    }
+
+    function renderHistogram(
+      container,
+      now,
+      groupMilliseconds,
+      groupCount,
+      labelUnit,
+      greenMaximum,
+      redMinimum
+    ) {
+      const currentGroup = Math.floor(now / groupMilliseconds);
+      const firstGroup = currentGroup - groupCount + 1;
+      const counts = Array(groupCount).fill(0);
+
+      for (const passTime of passTimes) {
+        const index =
+          Math.floor(passTime / groupMilliseconds) - firstGroup;
+        if (index >= 0 && index < groupCount) counts[index]++;
+      }
+
+      const maximum = Math.max(...counts, 1);
+      container.replaceChildren();
+      counts.forEach((count, index) => {
+        const column = document.createElement("div");
+        column.className = "bar-column";
+        const track = document.createElement("div");
+        track.className = "bar-track";
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        if (count > 0) {
+          bar.classList.add(
+            count <= greenMaximum
+              ? "green"
+              : count >= redMinimum
+                ? "red"
+                : "yellow"
+          );
+        }
+        bar.style.setProperty("--bar-height", `${(count / maximum) * 86}%`);
+
+        const countLabel = document.createElement("span");
+        countLabel.className = "bar-count";
+        countLabel.textContent = count;
+        const groupLabel = document.createElement("span");
+        groupLabel.className = "bar-label";
+        const groupsAgo = groupCount - index - 1;
+        const unitsAgo =
+          groupsAgo * groupMilliseconds / (labelUnit === "m" ? 60000 : 1000);
+        groupLabel.textContent =
+          groupsAgo === 0 ? "Now" : `-${unitsAgo}${labelUnit}`;
+        bar.title = `${groupLabel.textContent}: ${count} passes`;
+
+        bar.append(countLabel);
+        track.append(bar);
+        column.append(track, groupLabel);
+        container.append(column);
+      });
+    }
+
+    async function requestJson(url, options) {
+      const response = await fetch(url, options);
+      const value = await response.json();
+      if (!response.ok) {
+        throw new Error(value.error || `Request failed (${response.status})`);
+      }
+      return value;
+    }
+
+    async function loadPorts() {
+      refreshPortsButton.disabled = true;
+      try {
+        const selectedPort = portSelect.value;
+        const ports = await requestJson("/api/ports");
+        portSelect.replaceChildren();
+        if (ports.length === 0) {
+          portSelect.add(new Option("No serial ports found", ""));
+        } else {
+          for (const port of ports) {
+            const label = port.manufacturer
+              ? `${port.path} - ${port.manufacturer}`
+              : port.path;
+            portSelect.add(new Option(label, port.path));
+          }
+          if (ports.some(port => port.path === selectedPort)) {
+            portSelect.value = selectedPort;
+          }
+        }
+      } catch (error) {
+        homeStatus.textContent = `Could not list ports: ${error.message}`;
+      } finally {
+        refreshPortsButton.disabled = false;
+      }
+    }
+
+    function renderDevices(devices) {
+      deviceGrid.replaceChildren();
+      if (devices.length === 0) {
+        const message = document.createElement("p");
+        message.id = "empty";
+        message.textContent = "No devices yet. Add one above.";
+        deviceGrid.append(message);
+        return;
+      }
+
+      for (const device of devices) {
+        const link = document.createElement("a");
+        link.className = "device-card";
+        link.href = `/?device=${encodeURIComponent(device.id)}`;
+        const name = document.createElement("span");
+        name.className = "device-card-name";
+        name.textContent = device.name;
+        const detail = document.createElement("span");
+        detail.className = "device-card-detail";
+        const source = device.portPath
+          ? device.portPath
+          : device.source === "demo"
+            ? "Mock data"
+            : "Uploaded data";
+        detail.textContent = device.portPath
+          ? `${source} - ${device.connected ? "Connected" : "Offline"}`
+          : source;
+        link.append(name, detail);
+        deviceGrid.append(link);
+      }
+    }
+
+    function updateUploadDestinations(devices) {
+      const previousValue = uploadDestination.value;
+      uploadDestination.replaceChildren();
+      uploadDestination.add(new Option("Create a new device", ""));
+      for (const device of devices) {
+        uploadDestination.add(new Option(device.name, device.id));
+      }
+      if (devices.some(device => device.id === previousValue)) {
+        uploadDestination.value = previousValue;
+      }
+      newDeviceField.hidden = Boolean(uploadDestination.value);
+    }
+
+    function renderDeviceFilters(devices) {
+      if (!filtersInitialized) {
+        for (const device of devices) {
+          selectedAnalyticsDevices.add(device.id);
+        }
+        filtersInitialized = true;
+      }
+
+      for (const selectedId of [...selectedAnalyticsDevices]) {
+        if (!devices.some(device => device.id === selectedId)) {
+          selectedAnalyticsDevices.delete(selectedId);
+        }
+      }
+      deviceSelect.replaceChildren();
+      devices.forEach(device => {
+        const option = new Option(device.name, device.id);
+        option.selected = selectedAnalyticsDevices.has(device.id);
+        deviceSelect.add(option);
+      });
+      deviceSelect.size = Math.min(Math.max(devices.length, 2), 7);
+    }
+
+    function setDevices(devices) {
+      knownDevices = devices;
+      renderDevices(devices);
+      renderDeviceFilters(devices);
+      updateUploadDestinations(devices);
+    }
+
+    function svgElement(name, attributes = {}) {
+      const element = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        name
+      );
+      for (const [attribute, value] of Object.entries(attributes)) {
+        element.setAttribute(attribute, value);
+      }
+      return element;
+    }
+
+    function formatChartLabel(isoTimestamp) {
+      const date = new Date(
+        new Date(isoTimestamp).getTime() - 7 * 60 * 60 * 1000
+      );
+      if (currentRange === "1h" || currentRange === "4h") {
+        return `${String(date.getUTCHours()).padStart(2, "0")}:${String(
+          date.getUTCMinutes()
+        ).padStart(2, "0")}`;
+      }
+      if (currentRange === "24h") {
+        return `${String(date.getUTCHours()).padStart(2, "0")}:00`;
+      }
+      return `${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
+    }
+
+    function colorForDevice(deviceId) {
+      const index = knownDevices.findIndex(device => device.id === deviceId);
+      return chartColors[Math.max(index, 0) % chartColors.length];
+    }
+
+    function lineStyleForDevice(deviceId) {
+      const index = knownDevices.findIndex(device => device.id === deviceId);
+      return chartLineStyles[
+        Math.max(index, 0) % chartLineStyles.length
+      ];
+    }
+
+    function renderAnalytics(data) {
+      summaryGrid.replaceChildren();
+      comparisonChart.replaceChildren();
+      const selectedDevices = data.devices;
+      selectedDevices.forEach(device => {
+        const card = document.createElement("div");
+        card.className = "summary-card";
+        card.style.setProperty(
+          "--device-color",
+          colorForDevice(device.id)
+        );
+        const name = document.createElement("span");
+        name.className = "summary-name";
+        name.textContent = device.name;
+        const count = document.createElement("strong");
+        count.className = "summary-count";
+        count.textContent = device.total.toLocaleString();
+        card.append(name, count);
+        summaryGrid.append(card);
+      });
+
+      const width = 1000;
+      const height = 360;
+      const padding = { top: 25, right: 25, bottom: 55, left: 55 };
+      const plotWidth = width - padding.left - padding.right;
+      const plotHeight = height - padding.top - padding.bottom;
+      const maximum = Math.max(
+        1,
+        ...selectedDevices.flatMap(device => device.counts)
+      );
+
+      for (let gridIndex = 0; gridIndex <= 4; gridIndex++) {
+        const y = padding.top + plotHeight * gridIndex / 4;
+        comparisonChart.append(
+          svgElement("line", {
+            x1: padding.left,
+            y1: y,
+            x2: width - padding.right,
+            y2: y,
+            stroke: "rgba(23,32,29,0.13)",
+            "stroke-width": 1
+          })
+        );
+        const label = svgElement("text", {
+          x: padding.left - 10,
+          y: y + 4,
+          "text-anchor": "end",
+          fill: "#66706c",
+          "font-family": "Courier New",
+          "font-size": 12
+        });
+        label.textContent = Math.round(maximum * (4 - gridIndex) / 4);
+        comparisonChart.append(label);
+      }
+
+      const bucketCount = data.bucketStarts.length;
+      const labelStep = Math.max(1, Math.ceil(bucketCount / 6));
+      data.bucketStarts.forEach((bucket, index) => {
+        if (index % labelStep !== 0 && index !== bucketCount - 1) return;
+        const x = padding.left + plotWidth * index / Math.max(bucketCount - 1, 1);
+        const label = svgElement("text", {
+          x,
+          y: height - 22,
+          "text-anchor": "middle",
+          fill: "#66706c",
+          "font-family": "Courier New",
+          "font-size": 11
+        });
+        label.textContent = formatChartLabel(bucket);
+        comparisonChart.append(label);
+      });
+
+      selectedDevices.forEach(device => {
+        const color = colorForDevice(device.id);
+        const lineStyle = lineStyleForDevice(device.id);
+        const points = device.counts.map((count, index) => {
+          const x =
+            padding.left +
+            plotWidth * index / Math.max(device.counts.length - 1, 1);
+          const y = padding.top + plotHeight * (1 - count / maximum);
+          return { x, y };
+        });
+        const path = svgElement("path", {
+          d: points.map((point, index) =>
+            `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`
+          ).join(" "),
+          fill: "none",
+          stroke: color,
+          "stroke-width": 4,
+          "stroke-dasharray": lineStyle.dashArray,
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        });
+        comparisonChart.append(path);
+        for (const point of points) {
+          comparisonChart.append(
+            svgElement("circle", {
+              cx: point.x,
+              cy: point.y,
+              r: lineStyle.markerRadius,
+              fill: lineStyle.markerFill === "color" ? color : "#f4f1e9",
+              stroke: color,
+              "stroke-width": lineStyle.markerFill === "color" ? 1.5 : 3
+            })
+          );
+        }
+      });
+    }
+
+    async function loadAnalytics() {
+      if (selectedAnalyticsDevices.size === 0) {
+        summaryGrid.replaceChildren();
+        comparisonChart.replaceChildren();
+        analyticsStatus.textContent = "Select at least one device to compare.";
+        return;
+      }
+
+      analyticsStatus.textContent = "Loading comparison...";
+      try {
+        const deviceIds = [...selectedAnalyticsDevices].join(",");
+        const data = await requestJson(
+          `/api/analytics?range=${currentRange}&devices=${encodeURIComponent(deviceIds)}`
+        );
+        renderAnalytics(data);
+        analyticsStatus.textContent =
+          `Showing ${data.devices.length} device${data.devices.length === 1 ? "" : "s"}.`;
+      } catch (error) {
+        analyticsStatus.textContent =
+          `Could not load comparison: ${error.message}`;
+      }
+    }
+
+    function scheduleAnalyticsRefresh() {
+      clearTimeout(analyticsRefreshTimer);
+      analyticsRefreshTimer = setTimeout(loadAnalytics, 400);
+    }
+
+    async function addDevice(event) {
+      event.preventDefault();
+      addDeviceButton.disabled = true;
+      try {
+        const device = await requestJson("/api/devices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: deviceNameInput.value,
+            portPath: portSelect.value
+          })
+        });
+        window.location.href = `/?device=${encodeURIComponent(device.id)}`;
+      } catch (error) {
+        homeStatus.textContent = `Could not add device: ${error.message}`;
+        addDeviceButton.disabled = false;
+      }
+    }
+
+    async function uploadCsv(event) {
+      event.preventDefault();
+      const file = csvFileInput.files[0];
+      if (!file) {
+        uploadStatus.textContent = "Choose a CSV file first.";
+        return;
+      }
+      if (!uploadDestination.value && !newDeviceName.value.trim()) {
+        uploadStatus.textContent = "Enter a name for the new device.";
+        return;
+      }
+
+      uploadButton.disabled = true;
+      uploadStatus.textContent = `Reading ${file.name}...`;
+      try {
+        const csvText = await file.text();
+        const result = await requestJson("/api/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            csvText,
+            deviceId: uploadDestination.value || null,
+            newDeviceName: uploadDestination.value
+              ? null
+              : newDeviceName.value
+          })
+        });
+        uploadStatus.textContent =
+          `Imported ${result.importedRows.toLocaleString()} rows into ${result.device.name}.`;
+        uploadForm.reset();
+        newDeviceField.hidden = false;
+        const devices = await requestJson("/api/devices");
+        setDevices(devices);
+        await loadAnalytics();
+      } catch (error) {
+        uploadStatus.textContent = `Upload failed: ${error.message}`;
+      } finally {
+        uploadButton.disabled = false;
+      }
+    }
+
+    function applyStatus(deviceStatus) {
+      if (deviceStatus.deviceId !== selectedDeviceId) return;
+      connected = deviceStatus.connected;
+      connectButton.textContent =
+        connected ? "Disconnect" : "Connect Arduino";
+      connectButton.dataset.connected = String(connected);
+      status.textContent = deviceStatus.message;
+    }
+
+    async function toggleConnection() {
+      connectButton.disabled = true;
+      try {
+        const action = connected ? "disconnect" : "connect";
+        const deviceStatus = await requestJson(
+          `/api/devices/${encodeURIComponent(selectedDeviceId)}/${action}`,
+          { method: "POST" }
+        );
+        applyStatus(deviceStatus);
+      } catch (error) {
+        status.textContent = `Connection failed: ${error.message}`;
+      } finally {
+        connectButton.disabled = false;
+      }
+    }
+
+    function startEvents() {
+      const eventSource = new EventSource("/events");
+      eventSource.addEventListener("devices", event => {
+        if (!selectedDeviceId) {
+          setDevices(JSON.parse(event.data));
+          scheduleAnalyticsRefresh();
+        }
+      });
+      eventSource.addEventListener("crossing", event => {
+        const crossing = JSON.parse(event.data);
+        addPass(crossing);
+        if (!selectedDeviceId) scheduleAnalyticsRefresh();
+      });
+      eventSource.addEventListener("device-status", event => {
+        applyStatus(JSON.parse(event.data));
+      });
+      eventSource.onerror = () => {
+        const message = "Dashboard connection lost - retrying...";
+        if (selectedDeviceId) status.textContent = message;
+        else homeStatus.textContent = message;
+      };
+    }
+
+    async function initializeHome() {
+      homeView.hidden = false;
+      deviceView.hidden = true;
+      try {
+        const devices = await requestJson("/api/devices");
+        setDevices(devices);
+        await loadPorts();
+        await loadAnalytics();
+        startEvents();
+      } catch (error) {
+        homeStatus.textContent = `Server unavailable: ${error.message}`;
+      }
+    }
+
+    async function initializeDevice() {
+      homeView.hidden = true;
+      deviceView.hidden = false;
+      document.querySelector(".device-header").insertBefore(
+        document.querySelector(".sensor-diagram"),
+        document.querySelector(".connection")
+      );
+      try {
+        const [device, savedPasses] = await Promise.all([
+          requestJson(`/api/devices/${encodeURIComponent(selectedDeviceId)}`),
+          requestJson(
+            `/api/devices/${encodeURIComponent(selectedDeviceId)}/passes`
+          )
+        ]);
+        document.title = `${device.name} - Optoelectronic Traffic Counter`;
+        deviceTitle.textContent = device.name;
+        devicePort.textContent = device.portPath ?? (
+          device.source === "demo" ? "Mock data device" : "Uploaded data device"
+        );
+        connectButton.hidden = !device.portPath;
+        downloadCsv.href =
+          `/api/devices/${encodeURIComponent(selectedDeviceId)}/csv`;
+        applyStatus({
+          deviceId: device.id,
+          connected: device.connected,
+          message: device.connected
+            ? `Connected to ${device.portPath}`
+            : "Not connected"
+        });
+        for (const crossing of savedPasses) addPass(crossing);
+        startEvents();
+        drawTimer();
+      } catch (error) {
+        status.textContent = `Could not load device: ${error.message}`;
+        connectButton.disabled = true;
+      }
+    }
+
+    addDeviceForm.addEventListener("submit", addDevice);
+    uploadForm.addEventListener("submit", uploadCsv);
+    uploadDestination.addEventListener("change", () => {
+      newDeviceField.hidden = Boolean(uploadDestination.value);
+    });
+    refreshPortsButton.addEventListener("click", loadPorts);
+    connectButton.addEventListener("click", toggleConnection);
+    deviceSelect.addEventListener("change", () => {
+      selectedAnalyticsDevices.clear();
+      for (const option of deviceSelect.selectedOptions) {
+        selectedAnalyticsDevices.add(option.value);
+      }
+      loadAnalytics();
+    });
+    rangeSelect.addEventListener("change", () => {
+      currentRange = rangeSelect.value;
+      loadAnalytics();
+    });
+
+    if (selectedDeviceId) initializeDevice();
+    else initializeHome();
+  </script>
+</body>
+</html>
